@@ -1,5 +1,7 @@
 #pragma once
 #include<iostream>
+#include<functional>
+#include<Memory.hpp>
 class CPU
 {
     using Byte=unsigned char;
@@ -10,6 +12,11 @@ public:
     //Unknown
     void reset();
     
+    //Fetches The Byte of Memory at Program Counter and Increments it.
+    Byte Fetch(uint32_t&);
+    
+    //Returns The Byte of Memory at A Particular Location.
+    Byte FetchLocation(uint32_t&,uint32_t);
     //Load or Store Operations
     void LDA(); void LDX(); void LDY(); void STA(); void STX(); void STY();
     
@@ -71,4 +78,19 @@ public:
     Byte B:1;  //Break Command Used for Generating An Interupt.
     Byte O:1;  //OverFlow Flag Used for Indicating if we get an Invalid 2's Complement
     Byte N:1;  //Negative Flag Used When Result of last Operation is Negative
+    Byte U:1;  //Unused
+public:
+    //Addressing Modes
+    uint16_t ZeroPage(uint32_t&);
+    uint16_t ZeroPageX(uint32_t&);
+    uint16_t ZeroPageY(uint32_t&);
+    uint16_t Relative(uint32_t&);
+    uint16_t Absolute(uint32_t&);
+    uint16_t AbsoluteX(uint32_t&);
+    uint16_t AbsoluteY(uint32_t&);
+    uint16_t Indirect(uint32_t&);
+    uint16_t IndirectY(uint32_t&);
+    uint16_t IndirectX(uint32_t&);
+private:
+    Memory InternalRegister=Memory();
 };
