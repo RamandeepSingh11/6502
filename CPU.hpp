@@ -91,6 +91,8 @@ public:
     Byte U:1;  //Unused
 public:
     //Addressing Modes
+    uint16_t Implied(uint32_t&);
+    uint16_t Accumulator(uint32_t&);
     uint16_t IMM(uint32_t&);
     uint16_t ZeroPage(uint32_t&);
     uint16_t ZeroPageX(uint32_t&);
