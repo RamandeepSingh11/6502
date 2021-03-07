@@ -1,6 +1,30 @@
 #include "CPU.hpp"
-CPU::CPU(){reset();}
-
+CPU::CPU(){
+    for(int i=0;i<256;i++){
+        Lookup.push_back({0,nullptr,nullptr});
+    }
+    Instruction temp;
+    
+    temp.Cycles=2;
+    temp.addr_mode=std::bind(&CPU::IMM,this,std::placeholders::_1);
+    temp.operation=std::bind(&CPU::ADC,this,std::placeholders::_1);
+    temp.Illegal=false;
+    Lookup[0x69]=temp;
+    
+    temp.Cycles=3;
+    temp.addr_mode=std::bind(&CPU::ZeroPage,this,std::placeholders::_1);
+    temp.operation=std::bind(&CPU::ADC,this,std::placeholders::_1);
+    Lookup[0x65]=temp;
+    
+    temp.Cycles=4;
+    temp.addr_mode=std::bind(&CPU::ZeroPageX,this,std::placeholders::_1);
+    temp.operation=std::bind(&CPU::ADC,this,std::placeholders::_1);
+    Lookup[0x75]=temp;
+    
+    temp.addr_mode=std::bind(&CPU::ZeroPageY,this,std::placeholders::_1);
+    temp.operation=std::bind(&CPU::ADC,this,std::placeholders::_1);
+    reset();
+}
 CPU::~CPU(){}
 
 void CPU::reset(){
@@ -23,6 +47,9 @@ CPU::Byte CPU::FetchLocation(uint32_t& Cycles,uint32_t Address){
     return InternalRegister[Address];
 }
 
+uint16_t CPU::IMM(uint32_t& Cycles){
+    return PC++;
+}
 //Returns The Data From Least Signifcant Byte. Making it Faster
 uint16_t CPU::ZeroPage(uint32_t& Cycles){
     return Fetch(Cycles);
@@ -53,7 +80,7 @@ uint16_t CPU::Relative(uint32_t& Cycles){
     if(data&0x80){
         data|=0xFF00;
     }
-    return 0;
+    return data+PC;
 }
 
 //Gives A Full 16Bit Address. Has To Perfome Two Fetch Hence Takes 2 Clock Cycles
@@ -109,40 +136,47 @@ uint16_t CPU::IndirectY(uint32_t& Cycles){
 }
 
 //Set Carry Flag
-void CPU::SEC(){
+void CPU::SEC(uint32_t& Cycles){
     C=1;
+    Cycles--;
 }
 
 //Clear Carry Flag
-void CPU::CLC(){
+void CPU::CLC(uint32_t& Cycles){
     C=0;
+    Cycles--;
 }
 
 //Set Interupt disable Flag
-void CPU::SEI(){
+void CPU::SEI(uint32_t& Cycles){
     ID=1;
+    Cycles--;
 }
 
 //Clear Interupt Disable Flag
-void CPU::CLI(){
+void CPU::CLI(uint32_t& Cycles){
     ID=0;
+    Cycles--;
 }
 
 //Set Decimal Mode Flag
-void CPU::SED(){
+void CPU::SED(uint32_t& Cycles){
     D=1;
+    Cycles--;
 }
 
 //Clear Decimal Mode Flag
-void CPU::CLD(){
+void CPU::CLD(uint32_t& Cycles){
     D=0;
+    Cycles--;
 }
 
 //Clear OverFlow Flag
-void CPU::CLV(){
+void CPU::CLV(uint32_t& Cycles){
     O=0;
+    Cycles--;
 }
 
-void CPU::LDA(){
-    
+void CPU::LDA(uint32_t& Cycles){
+    return;
 }

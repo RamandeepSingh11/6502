@@ -2,6 +2,7 @@
 #include<iostream>
 #include<functional>
 #include<Memory.hpp>
+#include<vector>
 class CPU
 {
     using Byte=unsigned char;
@@ -18,37 +19,46 @@ public:
     //Returns The Byte of Memory at A Particular Location.
     Byte FetchLocation(uint32_t&,uint32_t);
     //Load or Store Operations
-    void LDA(); void LDX(); void LDY(); void STA(); void STX(); void STY();
+    void LDA(uint32_t&); void LDX(uint32_t&); void LDY(uint32_t&); void STA(uint32_t&); void STX(uint32_t&); void STY(uint32_t&);
     
     //Register Transfers
-    void TAX(); void TAY(); void TXA(); void TYA();
+    void TAX(uint32_t&); void TAY(uint32_t&); void TXA(uint32_t&); void TYA(uint32_t&);
     
     //Stack Operations
-    void TSX(); void TXS(); void PHA(); void PHP(); void PLA(); void PLP();
+    void TSX(uint32_t&); void TXS(uint32_t&); void PHA(uint32_t&); void PHP(uint32_t&); void PLA(uint32_t&); void PLP(uint32_t&);
     
     //Logical Operations
-    void AND(); void EOR(); void ORA(); void BIT();
+    void AND(uint32_t&); void EOR(uint32_t&); void ORA(uint32_t&); void BIT(uint32_t&);
     
     //Arithmetic Operations
-    void ADC(); void SBC(); void CMP(); void CPX(); void CPY();
+    void ADC(uint32_t&); void SBC(uint32_t&); void CMP(uint32_t&); void CPX(uint32_t&); void CPY(uint32_t&);
     
     //Increments and Decrements 
-    void INC(); void INX(); void INY(); void DEC(); void DEX(); void DEY();
+    void INC(uint32_t&); void INX(uint32_t&); void INY(uint32_t&); void DEC(uint32_t&); void DEX(uint32_t&); void DEY(uint32_t&);
     
     //Shifts
-    void ASL(); void LSR(); void ROL(); void ROR();
+    void ASL(uint32_t&); void LSR(uint32_t&); void ROL(uint32_t&); void ROR(uint32_t&);
     
     //Jumps and Calls
-    void JMP(); void JSR(); void RTS();
+    void JMP(uint32_t&); void JSR(uint32_t&); void RTS(uint32_t&);
     
     //Branches
-    void BCC(); void BCS(); void BEQ(); void BMI(); void BNE(); void BPL(); void BVC(); void BVS();
+    void BCC(uint32_t&); void BCS(uint32_t&); void BEQ(uint32_t&); void BMI(uint32_t&); void BNE(uint32_t&); 
+    void BPL(uint32_t&); void BVC(uint32_t&); void BVS(uint32_t&);
     
     //Status Flag Changes
-    void CLC(); void CLD(); void CLI(); void CLV(); void SEC(); void SED(); void SEI();
+    void CLC(uint32_t&); void CLD(uint32_t&); void CLI(uint32_t&); void CLV(uint32_t&); void SEC(uint32_t&); void SED(uint32_t&);
+    void SEI(uint32_t&);
     
     //System Functions
-    void BRK(); void NOP(); void RTI();
+    void BRK(uint32_t&); void NOP(uint32_t&); void RTI(uint32_t&);
+    class Instruction{
+    public:
+        int Cycles;
+        std::function<uint16_t(uint32_t&)> addr_mode;
+        std::function<void(uint32_t&)> operation;
+        bool Illegal=true;
+    };
     
 public:
     //Program Counter Points To next Instruction to Be Executed
@@ -81,6 +91,7 @@ public:
     Byte U:1;  //Unused
 public:
     //Addressing Modes
+    uint16_t IMM(uint32_t&);
     uint16_t ZeroPage(uint32_t&);
     uint16_t ZeroPageX(uint32_t&);
     uint16_t ZeroPageY(uint32_t&);
@@ -93,4 +104,5 @@ public:
     uint16_t IndirectX(uint32_t&);
 private:
     Memory InternalRegister=Memory();
+    std::vector<Instruction> Lookup;
 };

@@ -8,14 +8,6 @@ public:
     
     ~Memory();
     
-//    //Writes the data At Specified Location
-//    //Setter
-//    void write(uint16_t ,uint8_t );
-//    
-//    //Reads The Data From Specified Location
-//    //Getter
-//    uint8_t read(uint16_t);
-    
     uint8_t& operator[](uint16_t);
 public:
     //CPU Internal Registers
