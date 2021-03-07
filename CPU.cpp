@@ -5,10 +5,9 @@ CPU::CPU(){
     }
     Instruction temp;
     
-    temp.Cycles=2;
-    
     //Lookup for ADC.....................................................................
     
+    temp.Cycles=2;
     temp.addr_mode=std::bind(&CPU::IMM,this,std::placeholders::_1);
     temp.operation=std::bind(&CPU::ADC,this,std::placeholders::_1);
     temp.Illegal=false;
@@ -633,7 +632,7 @@ CPU::CPU(){
     Lookup[0x85] = temp;
 
     temp.Cycles = 4;
-    temp.addr_mode = std::bind(&CPU::ZeroPageY, this, std::placeholders::_1);
+    temp.addr_mode = std::bind(&CPU::ZeroPageX, this, std::placeholders::_1);
     Lookup[0x95] = temp;
 
     temp.addr_mode = std::bind(&CPU::Absolute, this, std::placeholders::_1);
