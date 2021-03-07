@@ -6,6 +6,9 @@ CPU::CPU(){
     Instruction temp;
     
     temp.Cycles=2;
+    
+    //Lookup for ADC.....................................................................
+    
     temp.addr_mode=std::bind(&CPU::IMM,this,std::placeholders::_1);
     temp.operation=std::bind(&CPU::ADC,this,std::placeholders::_1);
     temp.Illegal=false;
@@ -35,6 +38,8 @@ CPU::CPU(){
     temp.Cycles=5;
     temp.addr_mode=std::bind(&CPU::IndirectY,this,std::placeholders::_1);
     Lookup[0x71]=temp;
+    
+    //Lookup for AND.....................................................................
     
     temp.Cycles=2;
     temp.addr_mode=std::bind(&CPU::IMM,this,std::placeholders::_1);
@@ -66,6 +71,8 @@ CPU::CPU(){
     temp.addr_mode=std::bind(&CPU::IndirectY,this,std::placeholders::_1);
     Lookup[0x31]=temp;
     
+    //Lookup for ASL.....................................................................
+    
     temp.Cycles=2;
     temp.addr_mode=std::bind(&CPU::Accumulator,this,std::placeholders::_1);
     temp.operation=std::bind(&CPU::ASL,this,std::placeholders::_1);
@@ -86,16 +93,24 @@ CPU::CPU(){
     temp.addr_mode=std::bind(&CPU::AbsoluteX,this,std::placeholders::_1);
     Lookup[0x1E]=temp;
     
+    //Lookup for BCC.....................................................................
+    
     temp.Cycles=2;
     temp.addr_mode=std::bind(&CPU::Relative,this,std::placeholders::_1);
     temp.operation=std::bind(&CPU::BCC,this,std::placeholders::_1);
     Lookup[0x90]=temp;
     
+    //Lookup for BCS.....................................................................
+    
     temp.operation=std::bind(&CPU::BCS,this,std::placeholders::_1);
     Lookup[0xB0]=temp;
     
+    //Lookup for BEQ.....................................................................
+    
     temp.operation=std::bind(&CPU::BEQ,this,std::placeholders::_1);
     Lookup[0xF0]=temp;
+    
+    //Lookup for BIT.....................................................................
     
     temp.Cycles=3;
     temp.addr_mode=std::bind(&CPU::ZeroPage,this,std::placeholders::_1);
@@ -106,42 +121,64 @@ CPU::CPU(){
     temp.addr_mode=std::bind(&CPU::Absolute,this,std::placeholders::_1);
     Lookup[0x2C]=temp;
     
+    //Lookup for BMI.....................................................................
+    
     temp.Cycles=2;
     temp.addr_mode=std::bind(&CPU::Relative,this,std::placeholders::_1);
     temp.operation=std::bind(&CPU::BMI,this,std::placeholders::_1);
     Lookup[0x30]=temp;
     
-    temp.operation=std::bind(&CPU::Relative,this,std::placeholders::_1);
+    //Lookup for BNE.....................................................................
+    
+    temp.operation=std::bind(&CPU::BNE,this,std::placeholders::_1);
     Lookup[0xD0]=temp;
+    
+    //Lookup for BPL.....................................................................
     
     temp.operation=std::bind(&CPU::BPL,this,std::placeholders::_1);
     Lookup[0x10]=temp;
+    
+    //Lookup for BRK.....................................................................
     
     temp.Cycles=7;
     temp.addr_mode=std::bind(&CPU::Implied,this,std::placeholders::_1);
     temp.operation=std::bind(&CPU::BRK,this,std::placeholders::_1);
     Lookup[0x00]=temp;
     
+    //Lookup for BVC.....................................................................
+    
     temp.Cycles=2;
     temp.addr_mode=std::bind(&CPU::Relative,this,std::placeholders::_1);
     temp.operation=std::bind(&CPU::BVC,this,std::placeholders::_1);
     Lookup[0x50]=temp;
     
+    //Lookup for BVS.....................................................................
+    
     temp.operation=std::bind(&CPU::BVS,this,std::placeholders::_1);
     Lookup[0x70]=temp;
+    
+    //Lookup for CLC.....................................................................
     
     temp.addr_mode=std::bind(&CPU::Implied,this,std::placeholders::_1);
     temp.operation=std::bind(&CPU::CLC,this,std::placeholders::_1);
     Lookup[0x18]=temp;
     
+    //Lookup for CLD.....................................................................
+    
     temp.operation=std::bind(&CPU::CLD,this,std::placeholders::_1);
     Lookup[0xD8]=temp;
+    
+    //Lookup for CLI.....................................................................
     
     temp.operation=std::bind(&CPU::CLI,this,std::placeholders::_1);
     Lookup[0x58]=temp;
     
+    //Lookup for CLV.....................................................................
+    
     temp.operation=std::bind(&CPU::CLV,this,std::placeholders::_1);
     Lookup[0xB8]=temp;
+    
+    //Lookup for CMP..................................................................... 
     
     temp.Cycles=2;
     temp.addr_mode=std::bind(&CPU::IMM,this,std::placeholders::_1);
@@ -173,6 +210,8 @@ CPU::CPU(){
     temp.addr_mode=std::bind(&CPU::IndirectY,this,std::placeholders::_1);
     Lookup[0xD1]=temp;
     
+    //Lookup for CPX.....................................................................
+    
     temp.Cycles=2;
     temp.addr_mode=std::bind(&CPU::IMM,this,std::placeholders::_1);
     temp.operation=std::bind(&CPU::CPX,this,std::placeholders::_1);
@@ -186,6 +225,8 @@ CPU::CPU(){
     temp.addr_mode=std::bind(&CPU::Absolute,this,std::placeholders::_1);
     Lookup[0xEC]=temp;
     
+    //Lookup for CPY.....................................................................
+    
     temp.Cycles=2;
     temp.addr_mode=std::bind(&CPU::IMM,this,std::placeholders::_1);
     temp.operation=std::bind(&CPU::CPY,this,std::placeholders::_1);
@@ -198,6 +239,8 @@ CPU::CPU(){
     temp.Cycles=4;
     temp.addr_mode=std::bind(&CPU::Absolute,this,std::placeholders::_1);
     Lookup[0xCC]=temp;
+    
+    //Lookup for DEC.....................................................................
     
     temp.Cycles=5;
     temp.addr_mode=std::bind(&CPU::ZeroPage,this,std::placeholders::_1);
@@ -215,13 +258,19 @@ CPU::CPU(){
     temp.addr_mode=std::bind(&CPU::AbsoluteX,this,std::placeholders::_1);
     Lookup[0xDE]=temp;
     
+    //Lookup for DEX.....................................................................
+    
     temp.Cycles=2;
     temp.addr_mode=std::bind(&CPU::Implied,this,std::placeholders::_1);
     temp.operation=std::bind(&CPU::DEX,this,std::placeholders::_1);
     Lookup[0xCA]=temp;
     
+    //Lookup for DEY.....................................................................
+    
     temp.operation=std::bind(&CPU::DEY,this,std::placeholders::_1);
     Lookup[0x88]=temp;
+    
+    //Lookup for EOR.....................................................................
     
     temp.addr_mode=std::bind(&CPU::IMM,this,std::placeholders::_1);
     temp.operation=std::bind(&CPU::EOR,this,std::placeholders::_1);
@@ -251,6 +300,8 @@ CPU::CPU(){
     temp.Cycles=5;
     temp.addr_mode=std::bind(&CPU::IndirectY,this,std::placeholders::_1);
     Lookup[0x51]=temp;
+    
+    //Lookup for INC.....................................................................
     
     temp.addr_mode=std::bind(&CPU::ZeroPage,this,std::placeholders::_1);
     temp.operation=std::bind(&CPU::INC,this,std::placeholders::_1);
