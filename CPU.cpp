@@ -350,7 +350,6 @@ CPU::CPU(){
     Lookup[0x20] = temp;
 
     //Lookup for LDA.....................................................................
-
     temp.Cycles = 2;
     temp.addr_mode = std::bind(&CPU::IMM, this, std::placeholders::_1);
     temp.operation = std::bind(&CPU::LDA, this, std::placeholders::_1);
@@ -728,8 +727,24 @@ CPU::~CPU(){}
 
 void CPU::reset(){
     Y=X=Acc=D=Z=ID=0;
+    Unused=1;
     SP=0XFD;
-    PC=0x00;
+    Status=0;
+    PC=InternalRegister[ResetVector+1]<<8;
+    PC|=InternalRegister[ResetVector];
+}
+
+void CPU::UpdateStatus(){
+    Status=0;
+    Unused=1;
+    Status|=C;
+    Status|=(Z<<1);
+    Status|=(ID<<2);
+    Status|=(D<<3);
+    Status|=(1<<4);
+    Status|=(Unused<<5);
+    Status|=(O<<6);
+    Status|=(N<<7);
 }
 
 //Fetches A byte of Memory
@@ -746,12 +761,27 @@ CPU::Byte CPU::FetchLocation(uint32_t& Cycles,uint32_t Address){
     return InternalRegister[Address];
 }
 
-uint16_t CPU::Accumulator(uint32_t& Cycles){
+void CPU::WriteByte(uint32_t& Cycles,uint8_t Data,uint16_t Address){
+    InternalRegister[Address]=Data;
     Cycles--;
+}
+
+void CPU::StackPush(uint32_t& Cycles,uint8_t Data){
+    WriteByte(Cycles,Data,0x100+SP);
+    if(SP==0)SP=0xFF;
+    else SP--;
+}
+
+uint8_t CPU::StackPop(uint32_t& Cycles){
+    if(SP==0xFF)SP=0x00;
+    else ++SP;
+    return InternalRegister[0x100+SP];
+}
+
+uint16_t CPU::Accumulator(uint32_t& Cycles){
     return Acc;
 }
 uint16_t CPU::Implied(uint32_t& Cycles){
-    --Cycles;
     return 0;
 }
 uint16_t CPU::IMM(uint32_t& Cycles){
@@ -830,6 +860,7 @@ uint16_t CPU::Indirect(uint32_t& Cycles){
 //It also wraps The Resultant Address after Incrementing
 uint16_t CPU::IndirectX(uint32_t& Cycles){
     uint16_t ptrl=(Fetch(Cycles)+X)&0xFF;
+    Cycles--;
     uint16_t ptrr=(ptrl+1)&0xFF;
     uint16_t res=FetchLocation(Cycles,ptrl)|(FetchLocation(Cycles,ptrr)<<8);
     return res;
@@ -838,52 +869,213 @@ uint16_t CPU::IndirectX(uint32_t& Cycles){
 //Grabs The Zero Page Address and Then Fetches the Word at That Location And adds Y as an Offset.
 uint16_t CPU::IndirectY(uint32_t& Cycles){
     uint16_t ptr=(Fetch(Cycles));
-    uint16_t res=FetchLocation(Cycles,ptr)|(FetchLocation(Cycles,(ptr+1)&0xFF)<<8)+Y;
+    uint16_t res=(FetchLocation(Cycles,ptr)|(FetchLocation(Cycles,(ptr+1)&0xFF)<<8))+Y;
     return res;
 }
+
+//Operations
 
 //Set Carry Flag
 void CPU::SEC(uint32_t& Cycles){
     C=1;
-    Cycles--;
 }
 
 //Clear Carry Flag
 void CPU::CLC(uint32_t& Cycles){
     C=0;
-    Cycles--;
 }
 
 //Set Interupt disable Flag
 void CPU::SEI(uint32_t& Cycles){
     ID=1;
-    Cycles--;
 }
 
 //Clear Interupt Disable Flag
 void CPU::CLI(uint32_t& Cycles){
     ID=0;
-    Cycles--;
 }
 
 //Set Decimal Mode Flag
 void CPU::SED(uint32_t& Cycles){
     D=1;
-    Cycles--;
 }
 
 //Clear Decimal Mode Flag
 void CPU::CLD(uint32_t& Cycles){
     D=0;
-    Cycles--;
 }
 
 //Clear OverFlow Flag
 void CPU::CLV(uint32_t& Cycles){
     O=0;
-    Cycles--;
 }
 
 void CPU::LDA(uint32_t& Cycles){
-    return;
+    Acc=FetchLocation(Cycles,CurrAddr);
+    Z=(Acc==0);
+    N=(Acc&0x80)>0;
+}
+
+void CPU::LDX(uint32_t& Cycles){
+    X=FetchLocation(Cycles,CurrAddr);
+    Z=(X==0);
+    N=(X&0x80)>0;
+}
+
+void CPU::LDY(uint32_t& Cycles){
+    Y=FetchLocation(Cycles,CurrAddr);
+    Z=(Y==0);
+    N=(Y&0x80)>0;
+}
+
+void CPU::STA(uint32_t& Cycles){
+    WriteByte(Cycles,Acc,CurrAddr);
+}
+
+void CPU::STX(uint32_t& Cycles){
+    WriteByte(Cycles,X,CurrAddr);
+}
+
+void CPU::STY(uint32_t& Cycles){
+    WriteByte(Cycles,Y,CurrAddr);
+}
+
+void CPU::TAX(uint32_t& Cycles){
+    X=Acc;
+    Z=(X==0);
+    N=(X&0x80)>0;
+}
+
+void CPU::TAY(uint32_t& Cycles){
+    Y=Acc;
+    Z=(Y==0);
+    N=(Y&0x80)>0;
+}
+
+void CPU::TXA(uint32_t& Cycles){
+    Acc=X;
+    Z=(Acc==0);
+    N=(Acc&0x80)>0;
+}
+
+void CPU::TYA(uint32_t& Cycles){
+    Acc=Y;
+    Z=(Acc==0);
+    N=(Acc&0x80)>0;
+}
+
+void CPU::TSX(uint32_t& Cycles){
+    X=SP;
+    Z=(X==0);
+    N=(X&0x80)>0;
+}
+
+void CPU::TXS(uint32_t& Cycles){
+    SP=X;
+}
+
+void CPU::PHA(uint32_t& Cycles){
+    StackPush(Cycles,Acc);
+}
+
+void CPU::PHP(uint32_t& Cycles){
+    UpdateStatus();
+    StackPush(Cycles,Status);
+}
+
+void CPU::PLA(uint32_t& Cycles){
+    Acc=StackPop(Cycles);
+    Z=(Acc==0);
+    N=(Acc&0x80)>0;
+}
+
+void CPU::PLP(uint32_t& Cycles){
+    uint8_t temp=StackPop(Cycles);
+    C=temp&1;
+    Z=temp&(1<<1);
+    ID=temp&(1<<2);
+    D=temp&(1<<3);
+    B=temp&(1<<4);
+    Unused=1;
+    O=temp&(1<<6);
+    N=temp&(1<<7);
+}
+
+void CPU::AND(uint32_t& Cycles){
+    Acc&=FetchLocation(Cycles,CurrAddr);
+    Z=(Acc==0);
+    N=(Acc&0x80)>0;
+}
+
+void CPU::EOR(uint32_t& Cycles){
+    Acc^=FetchLocation(Cycles,CurrAddr);
+    Z=(Acc==0);
+    N=(Acc&0x80)>0;
+}
+
+void CPU::ORA(uint32_t& Cycles){
+    Acc|=FetchLocation(Cycles,CurrAddr);
+    Z=(Acc==0);
+    N=(Acc&0x80)>0;
+}
+
+void CPU::BIT(uint32_t& Cycles){
+    uint8_t data=FetchLocation(Cycles,CurrAddr),temp=data&Acc;
+    Z=(temp==0);
+    N=(data&(1<<7))>0;
+    O=(data&(1<<6))>0;
+}
+
+void CPU::INC(uint32_t& Cycles){
+    uint8_t data=FetchLocation(Cycles,CurrAddr);
+    data=(data+1)&0xFF;
+    WriteByte(Cycles,data,CurrAddr);
+    Z=(data==0);
+    N=(data&0x80)>0;
+}
+
+void CPU::INX(uint32_t& Cycles){
+    X++;
+    Z=(X==0);
+    N=(X&0x80)>0;
+}
+
+void CPU::INY(uint32_t& Cycles){
+    Y++;
+    Z=(Y==0);
+    N=(Y&0x80)>0;
+}
+
+void CPU::DEC(uint32_t& Cycles){
+    uint8_t data=FetchLocation(Cycles,CurrAddr);
+    data=(data-1)&0xFF;
+    WriteByte(Cycles,data,CurrAddr);
+    Z=(data==0);
+    N=(data&0x80)>0;
+}
+
+void CPU::DEX(uint32_t& Cycles){
+    X--;
+    Z=(X==0);
+    N=(X&0x80)>0;
+}
+
+void CPU::DEY(uint32_t& Cycles){
+    Y--;
+    Z=(Y==0);
+    N=(Y&0x80)>0;
+}
+
+//Execution
+void CPU::Execute(uint32_t Cycles){
+    uint8_t opcode=Fetch(Cycles);
+    const Instruction& temp=Lookup[opcode];
+    if(!temp.Illegal){
+        Cycles=temp.Cycles-1;
+        CurrAddr=temp.addr_mode(Cycles);
+        temp.operation(Cycles);
+    }
+    if(Cycles!=0){
+        std::cout<<"Something Went Wrong With Opcode: "<<opcode<<std::endl;
+    }
 }
