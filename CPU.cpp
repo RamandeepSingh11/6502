@@ -779,22 +779,27 @@ uint8_t CPU::StackPop(uint32_t& Cycles){
 }
 
 uint16_t CPU::Accumulator(uint32_t& Cycles){
-    return Acc;
+    AddrAcc = true;
+    return 0;
 }
 uint16_t CPU::Implied(uint32_t& Cycles){
+    AddrAcc = false;
     return 0;
 }
 uint16_t CPU::IMM(uint32_t& Cycles){
+    AddrAcc = false;
     return PC++;
 }
 //Returns The Data From Least Signifcant Byte. Making it Faster
 uint16_t CPU::ZeroPage(uint32_t& Cycles){
+    AddrAcc = false;
     return Fetch(Cycles);
 }
 
 //Grabs The Address in Zero Page Addressing and Then Adds A offset X to the Address
 //The Address wraps around 0xFF
 uint16_t CPU::ZeroPageX(uint32_t& Cycles){
+    AddrAcc = false;
     uint16_t data=Fetch(Cycles);
     data+=X;
     data&=0xFF;
@@ -805,6 +810,7 @@ uint16_t CPU::ZeroPageX(uint32_t& Cycles){
 //Grabs The Address in Zero Page Addressing and Then Adds A offset Y to the Address
 //Again The Address Wraps Around 0xFF
 uint16_t CPU::ZeroPageY(uint32_t& Cycles){
+    AddrAcc = false;
     uint16_t data=Fetch(Cycles);
     data+=Y;
     data&=0xFF;
@@ -813,6 +819,7 @@ uint16_t CPU::ZeroPageY(uint32_t& Cycles){
 }
 //Not Sure
 uint16_t CPU::Relative(uint32_t& Cycles){
+    AddrAcc = false;
     uint16_t data=Fetch(Cycles);
     if(data&0x80){
         data|=0xFF00;
@@ -822,6 +829,7 @@ uint16_t CPU::Relative(uint32_t& Cycles){
 
 //Gives A Full 16Bit Address. Has To Perfome Two Fetch Hence Takes 2 Clock Cycles
 uint16_t CPU::Absolute(uint32_t& Cycles){
+    AddrAcc = false;
     uint16_t data=Fetch(Cycles);
     data|=(Fetch(Cycles)<<8);
     return data;
@@ -846,6 +854,7 @@ uint16_t CPU::AbsoluteY(uint32_t& Cycles){
 //The ptr_lo==0xFF is cause when ptr_lo is 0xFF then any increment would cause it to go to 
 //Next Page and Hence We're using The Bits In The Most Significant Byte.
 uint16_t CPU::Indirect(uint32_t& Cycles){
+    AddrAcc = false;
     uint16_t ptr_lo=Fetch(Cycles),ptr_hi=(Fetch(Cycles)<<8);
     uint16_t ptr=ptr_lo|ptr_hi;
     uint16_t eff;
@@ -859,6 +868,7 @@ uint16_t CPU::Indirect(uint32_t& Cycles){
 //Grabs The Zero Page Address and then Adds Offset of X
 //It also wraps The Resultant Address after Incrementing
 uint16_t CPU::IndirectX(uint32_t& Cycles){
+    AddrAcc = false;
     uint16_t ptrl=(Fetch(Cycles)+X)&0xFF;
     Cycles--;
     uint16_t ptrr=(ptrl+1)&0xFF;
@@ -868,6 +878,7 @@ uint16_t CPU::IndirectX(uint32_t& Cycles){
 
 //Grabs The Zero Page Address and Then Fetches the Word at That Location And adds Y as an Offset.
 uint16_t CPU::IndirectY(uint32_t& Cycles){
+    AddrAcc = false;
     uint16_t ptr=(Fetch(Cycles));
     uint16_t res=(FetchLocation(Cycles,ptr)|(FetchLocation(Cycles,(ptr+1)&0xFF)<<8))+Y;
     return res;
@@ -1065,6 +1076,56 @@ void CPU::DEY(uint32_t& Cycles){
     Z=(Y==0);
     N=(Y&0x80)>0;
 }
+
+//Shift operation..................
+
+void CPU::ASL(uint32_t& Cycles) {
+    if (AddrAcc)uint8_t data = Acc;
+    else uint8_t data = FetchLocation(Cycles, CurrAddr);
+    C = (data & 0x80) > 1;
+    data = data << 1;
+    data &= 0xFF;
+    Z = (data == 0);
+    N = (data & 0x80) > 0;
+    if (AddrAcc)Acc = data;
+    else WriteByte(Cycles, data, CurrAddr);
+}
+
+void CPU::LSR(uint32_t& Cycles) {
+    if (AddrAcc)uint8_t data = Acc;
+    else uint8_t data = FetchLocation(Cycles, CurrAddr);
+    C =(data & 0x01) > 0;
+    data = data >> 1;
+    Z = (data == 0);
+    N = (data & 0x80) > 0;
+    if (AddrAcc)Acc = data;
+    else WriteByte(Cycles, data, CurrAddr);
+}
+
+
+void CPU::ROL(uint32_t& Cycles) {
+    if (AddrAcc)uint8_t data = Acc;
+    else uint8_t data = FetchLocation(Cycles, CurrAddr);
+    C = (data & 0x80) > 1;
+    data = data << 1 | C;    
+    Z = (data == 0);
+    N = (data & 0x80) > 0;
+    if (AddrAcc)Acc = data;
+    else WriteByte(Cycles, data, CurrAddr);
+    
+}
+
+void CPU::ROR(uint32_t Cycles) {
+    if (AddrAcc)uint8_t data = Acc;
+    else uint8_t data = FetchLocation(Cycles, CurrAddr);
+    C = (data & 0x01) > 1;
+    data = data >> 1 | C << 7;
+    Z = (data == 0);
+    N = (data & 0x80) > 0;
+    if (AddrAcc)Acc = data;
+    else WriteByte(Cycles, data, CurrAddr);
+}
+
 
 //Execution
 void CPU::Execute(uint32_t Cycles){

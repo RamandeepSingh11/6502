@@ -122,4 +122,5 @@ private:
     std::vector<Instruction> Lookup;
     uint16_t CurrAddr;
     const uint16_t ResetVector=0xFFFC;
+    bool AddrAcc = false;
 };
