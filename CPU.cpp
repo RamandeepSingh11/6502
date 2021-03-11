@@ -779,22 +779,27 @@ uint8_t CPU::StackPop(uint32_t& Cycles){
 }
 
 uint16_t CPU::Accumulator(uint32_t& Cycles){
-    return Acc;
+    AddrAcc=true;
+    return 0;
 }
 uint16_t CPU::Implied(uint32_t& Cycles){
+    AddrAcc=false;
     return 0;
 }
 uint16_t CPU::IMM(uint32_t& Cycles){
+    AddrAcc=false;
     return PC++;
 }
 //Returns The Data From Least Signifcant Byte. Making it Faster
 uint16_t CPU::ZeroPage(uint32_t& Cycles){
+    AddrAcc=false;
     return Fetch(Cycles);
 }
 
 //Grabs The Address in Zero Page Addressing and Then Adds A offset X to the Address
 //The Address wraps around 0xFF
 uint16_t CPU::ZeroPageX(uint32_t& Cycles){
+    AddrAcc=false;
     uint16_t data=Fetch(Cycles);
     data+=X;
     data&=0xFF;
@@ -805,6 +810,7 @@ uint16_t CPU::ZeroPageX(uint32_t& Cycles){
 //Grabs The Address in Zero Page Addressing and Then Adds A offset Y to the Address
 //Again The Address Wraps Around 0xFF
 uint16_t CPU::ZeroPageY(uint32_t& Cycles){
+    AddrAcc=false;
     uint16_t data=Fetch(Cycles);
     data+=Y;
     data&=0xFF;
@@ -813,6 +819,7 @@ uint16_t CPU::ZeroPageY(uint32_t& Cycles){
 }
 //Not Sure
 uint16_t CPU::Relative(uint32_t& Cycles){
+    AddrAcc=false;
     uint16_t data=Fetch(Cycles);
     if(data&0x80){
         data|=0xFF00;
@@ -822,6 +829,7 @@ uint16_t CPU::Relative(uint32_t& Cycles){
 
 //Gives A Full 16Bit Address. Has To Perfome Two Fetch Hence Takes 2 Clock Cycles
 uint16_t CPU::Absolute(uint32_t& Cycles){
+    AddrAcc=false;
     uint16_t data=Fetch(Cycles);
     data|=(Fetch(Cycles)<<8);
     return data;
@@ -846,6 +854,7 @@ uint16_t CPU::AbsoluteY(uint32_t& Cycles){
 //The ptr_lo==0xFF is cause when ptr_lo is 0xFF then any increment would cause it to go to 
 //Next Page and Hence We're using The Bits In The Most Significant Byte.
 uint16_t CPU::Indirect(uint32_t& Cycles){
+    AddrAcc=false;
     uint16_t ptr_lo=Fetch(Cycles),ptr_hi=(Fetch(Cycles)<<8);
     uint16_t ptr=ptr_lo|ptr_hi;
     uint16_t eff;
@@ -859,6 +868,7 @@ uint16_t CPU::Indirect(uint32_t& Cycles){
 //Grabs The Zero Page Address and then Adds Offset of X
 //It also wraps The Resultant Address after Incrementing
 uint16_t CPU::IndirectX(uint32_t& Cycles){
+    AddrAcc=false;
     uint16_t ptrl=(Fetch(Cycles)+X)&0xFF;
     Cycles--;
     uint16_t ptrr=(ptrl+1)&0xFF;
@@ -868,6 +878,7 @@ uint16_t CPU::IndirectX(uint32_t& Cycles){
 
 //Grabs The Zero Page Address and Then Fetches the Word at That Location And adds Y as an Offset.
 uint16_t CPU::IndirectY(uint32_t& Cycles){
+    AddrAcc=false;
     uint16_t ptr=(Fetch(Cycles));
     uint16_t res=(FetchLocation(Cycles,ptr)|(FetchLocation(Cycles,(ptr+1)&0xFF)<<8))+Y;
     return res;
@@ -1026,6 +1037,62 @@ void CPU::BIT(uint32_t& Cycles){
     O=(data&(1<<6))>0;
 }
 
+//Arithmetic Operations
+
+void CPU::ADC(uint32_t& Cycles){
+    //Decimal Mode Not Implemented
+    uint16_t data=FetchLocation(Cycles,CurrAddr),temp=data;
+    data+=Acc+C;
+    Z=((data&0x00FF)==0);
+    C=(data>0x00FF);
+    N=(data&0x0080)>0;
+    O=((!((Acc^temp)&0x80)) & ((Acc^data)&0x80));
+    Acc=data&0x00FF;
+}
+
+void CPU::SBC(uint32_t& Cycles){
+    uint16_t data=FetchLocation(Cycles,CurrAddr)^0x00FF,temp=data;
+    data=data+Acc+C;
+    C=(data>0x00FF);
+    N=(data&0x0080)>0;
+    Z=((data&0x00FF)==0);
+    O=((!((Acc^temp)&0x80)) && ((Acc^data)&0x80));
+    Acc=data&0x00FF;
+    
+}
+
+void CPU::CMP(uint32_t& Cycles){
+    uint16_t data=(uint16_t)Acc-(uint16_t)FetchLocation(Cycles,CurrAddr);
+    Z=(!(data&0xFF));
+    //Cause If The Fetched Byte is Greater Than Acc then the Value will wrap around and we'll get 0xFFxx
+    //So if The Value is Smaller the The 0x100 that ensures that The Result has not Wrapped around and Fetched Data is
+    //Smaller than Acc
+    C=(data<0x100);
+    N=(data&0x80);
+}
+
+void CPU::CPX(uint32_t& Cycles){
+    uint16_t data=(uint16_t)X-(uint16_t)FetchLocation(Cycles,CurrAddr);
+    Z=(!(data&0xFF));
+    //Cause If The Fetched Byte is Greater Than X then the Value will wrap around and we'll get 0xFFxx
+    //So if The Value is Smaller the The 0x100 that ensures that The Result has not Wrapped around and Fetched Data is
+    //Smaller than X
+    C=(data<0x100);
+    N=(data&0x80);
+}
+
+void CPU::CPY(uint32_t& Cycles){
+    uint16_t data=(uint16_t)Y-(uint16_t)FetchLocation(Cycles,CurrAddr);
+    Z=(!(data&0xFF));
+    //Cause If The Fetched Byte is Greater Than Y then the Value will wrap around and we'll get 0xFFxx
+    //So if The Value is Smaller the The 0x100 that ensures that The Result has not Wrapped around and Fetched Data is
+    //Smaller than Y
+    C=(data<0x100);
+    N=(data&0x80);
+}
+
+//Increment Operations
+
 void CPU::INC(uint32_t& Cycles){
     uint8_t data=FetchLocation(Cycles,CurrAddr);
     data=(data+1)&0xFF;
@@ -1064,6 +1131,132 @@ void CPU::DEY(uint32_t& Cycles){
     Y--;
     Z=(Y==0);
     N=(Y&0x80)>0;
+}
+
+//Shift Operations
+
+void CPU::ASL(uint32_t& Cycles){
+    uint8_t data;
+    if(AddrAcc)data=Acc;
+    else data=FetchLocation(Cycles,CurrAddr);
+    C=(data&0x80)>1;
+    data<<=1;
+    data&=0xFF;
+    Z=(data==0);
+    N=(data&0x80)>1;
+    if(AddrAcc)Acc=data;
+    else WriteByte(Cycles,data,CurrAddr);
+    AddrAcc=false;
+}
+
+void CPU::LSR(uint32_t& Cycles){
+    uint8_t data;
+    if(AddrAcc)data=Acc;
+    else data=FetchLocation(Cycles,CurrAddr);
+    C=(data&0x01)>1;
+    data>>=1;
+    Z=(data==0);
+    N=(data&0x80)>1;
+    if(AddrAcc)Acc=data;
+    else WriteByte(Cycles,data,CurrAddr);
+    AddrAcc=false;
+}
+
+void CPU::ROL(uint32_t& Cycles){
+    uint16_t data;
+    if(AddrAcc)data=Acc;
+    else data=FetchLocation(Cycles,CurrAddr);
+    data<<=1;
+    data=data|C;
+    C=data>0xFF;
+    data&=0xFF;
+    Z=(data==0);
+    N=(data&0x80)>1;
+    if(AddrAcc)Acc=data;
+    else WriteByte(Cycles,data,CurrAddr);
+    AddrAcc=false;
+}
+
+void CPU::ROR(uint32_t& Cycles){
+    uint16_t data;
+    if(AddrAcc)data=Acc;
+    else FetchLocation(Cycles,CurrAddr);
+    data=data|(C<<8);
+    C=(data&0x01)>1;
+    data>>=1;
+    data&=0xFF;
+    Z=(data==0);
+    N=(data&0x80)>1;
+    if(AddrAcc)Acc=data;
+    else WriteByte(Cycles,data,CurrAddr);
+    AddrAcc=false;
+}
+
+void CPU::JMP(uint32_t& Cycles){
+    PC=CurrAddr;
+}
+
+void CPU::JSR(uint32_t& Cycles){
+    PC--;
+    StackPush(Cycles,PC>>8);
+    StackPush(Cycles,PC&0xFF);
+    PC=CurrAddr;
+}
+
+void CPU::RTS(uint32_t& Cycles){
+    PC=StackPop(Cycles);
+    PC|=StackPop(Cycles)<<8;
+    PC++;
+}
+
+void CPU::BCC(uint32_t& Cycles){
+    if(C==0)PC=CurrAddr;
+}
+
+void CPU::BCS(uint32_t& Cycles){
+    if(C)PC=CurrAddr;
+}
+
+void CPU::BEQ(uint32_t& Cycles){
+    if(Z)PC=CurrAddr;
+}
+
+void CPU::BMI(uint32_t& Cycles){
+    if(N)PC=CurrAddr;
+}
+
+void CPU::BNE(uint32_t& Cycles){
+    if(!Z)PC=CurrAddr;
+}
+
+void CPU::BPL(uint32_t& Cycles){
+    if(!N)PC=CurrAddr;
+}
+
+void CPU::BVC(uint32_t& Cycles){
+    if(!O)PC=CurrAddr;
+}
+
+void CPU::BVS(uint32_t& Cycles){
+    if(O)PC=CurrAddr;
+}
+
+
+//Still in Progress CHECK.........................................
+void CPU::BRK(uint32_t& Cycles){
+    B=1;
+    PC++;
+    StackPush(Cycles,PC>>8);
+    StackPush(Cycles,PC&0xFF);
+    UpdateStatus();
+    StackPush(Cycles,Status);
+    ID=1;
+    PC=FetchLocation(Cycles,InterruptVector);
+    PC|=FetchLocation(Cycles,InterruptVector+1)<<8;
+}
+
+void CPU::NOP(uint32_t& Cycles){
+    return;
 }
 
 //Execution

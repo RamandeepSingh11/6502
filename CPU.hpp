@@ -121,5 +121,6 @@ public:
 private:
     std::vector<Instruction> Lookup;
     uint16_t CurrAddr;
-    const uint16_t ResetVector=0xFFFC;
+    const uint16_t ResetVector=0xFFFC,InterruptVector=0xFFFE;
+    bool AddrAcc=0;
 };
