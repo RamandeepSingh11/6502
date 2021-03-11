@@ -1105,9 +1105,9 @@ void CPU::LSR(uint32_t& Cycles) {
 
 void CPU::ROL(uint32_t& Cycles) {
     if (AddrAcc)uint8_t data = Acc;
-    else uint8_t data = FetchLocation(Cycles, CurrAddr);
+    else uint8_t data = FetchLocation(Cycles, CurrAddr);    
+    data = (data << 1) | C;    
     C = (data & 0x80) > 1;
-    data = data << 1 | C;    
     Z = (data == 0);
     N = (data & 0x80) > 0;
     if (AddrAcc)Acc = data;
@@ -1118,8 +1118,8 @@ void CPU::ROL(uint32_t& Cycles) {
 void CPU::ROR(uint32_t Cycles) {
     if (AddrAcc)uint8_t data = Acc;
     else uint8_t data = FetchLocation(Cycles, CurrAddr);
+    data = (data >> 1 )| C << 7;
     C = (data & 0x01) > 1;
-    data = data >> 1 | C << 7;
     Z = (data == 0);
     N = (data & 0x80) > 0;
     if (AddrAcc)Acc = data;
