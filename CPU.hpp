@@ -66,6 +66,7 @@ public:
     Byte N:1;  //Negative Flag Used When Result of last Operation is Negative
     
     void UpdateStatus();
+    void SetFlags(uint8_t);
 public:
     //Addressing Modes
     uint16_t Implied(uint32_t&);
@@ -116,6 +117,8 @@ public:
     
     //System Functions
     void BRK(uint32_t&); void NOP(uint32_t&); void RTI(uint32_t&);
+    
+    //Two more Potential Functions Could be irq,nmi
 public: 
     Memory InternalRegister=Memory();
 private:

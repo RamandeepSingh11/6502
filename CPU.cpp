@@ -747,6 +747,16 @@ void CPU::UpdateStatus(){
     Status|=(N<<7);
 }
 
+void CPU::SetFlags(uint8_t temp){
+    C=temp&1;
+    Z=temp&(1<<1);
+    ID=temp&(1<<2);
+    D=temp&(1<<3);
+    B=temp&(1<<4);
+    Unused=1;
+    O=temp&(1<<6);
+    N=temp&(1<<7);
+}
 //Fetches A byte of Memory
 //The Process Takes 1 Cpu Cycle
 //Also Increments The Program Counter
@@ -1002,14 +1012,7 @@ void CPU::PLA(uint32_t& Cycles){
 
 void CPU::PLP(uint32_t& Cycles){
     uint8_t temp=StackPop(Cycles);
-    C=temp&1;
-    Z=temp&(1<<1);
-    ID=temp&(1<<2);
-    D=temp&(1<<3);
-    B=temp&(1<<4);
-    Unused=1;
-    O=temp&(1<<6);
-    N=temp&(1<<7);
+    SetFlags(temp);
 }
 
 void CPU::AND(uint32_t& Cycles){
@@ -1056,9 +1059,8 @@ void CPU::SBC(uint32_t& Cycles){
     C=(data>0x00FF);
     N=(data&0x0080)>0;
     Z=((data&0x00FF)==0);
-    O=((!((Acc^temp)&0x80)) && ((Acc^data)&0x80));
+    O=(((Acc^data)&(temp^data))&0x0080);
     Acc=data&0x00FF;
-    
 }
 
 void CPU::CMP(uint32_t& Cycles){
@@ -1246,17 +1248,27 @@ void CPU::BVS(uint32_t& Cycles){
 void CPU::BRK(uint32_t& Cycles){
     B=1;
     PC++;
+    ID=1;
     StackPush(Cycles,PC>>8);
     StackPush(Cycles,PC&0xFF);
     UpdateStatus();
     StackPush(Cycles,Status);
-    ID=1;
+    B=0;
     PC=FetchLocation(Cycles,InterruptVector);
     PC|=FetchLocation(Cycles,InterruptVector+1)<<8;
 }
 
 void CPU::NOP(uint32_t& Cycles){
     return;
+}
+
+void CPU::RTI(uint32_t& Cycles){
+    Status=StackPop(Cycles);
+    PC=StackPop(Cycles);
+    PC|=StackPop(Cycles)<<8;
+    uint8_t temp=B;
+    SetFlags(Status);
+    B=!temp;
 }
 
 //Execution
@@ -1267,8 +1279,5 @@ void CPU::Execute(uint32_t Cycles){
         Cycles=temp.Cycles-1;
         CurrAddr=temp.addr_mode(Cycles);
         temp.operation(Cycles);
-    }
-    if(Cycles!=0){
-        std::cout<<"Something Went Wrong With Opcode: "<<opcode<<std::endl;
     }
 }
